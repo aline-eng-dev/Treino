@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Treino da Semana</title>
+
+<!-- iOS: abre em tela cheia como app, sem precisar de nenhuma configuração extra -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treino">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+<!-- PWA manifest (Android e outros) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14161A">
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; background:#14161A; font-family:-apple-system,'Inter',system-ui,sans-serif; color:#EDEDED; }
+  .wrap { max-width:640px; margin:0 auto; padding: max(28px, env(safe-area-inset-top)) 18px 60px; }
+  h1 { font-size:22px; font-weight:800; margin:0 0 4px; letter-spacing:-0.3px; display:flex; align-items:center; gap:8px; }
+  .sub { margin:0 0 20px; font-size:13px; color:#9A9A9A; }
+  .tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px; }
+  .tab { flex:0 0 auto; padding:8px 14px; border-radius:10px; border:1.5px solid #2A2D33; background:#1B1D22; color:#9A9A9A; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .tab.active { color:#fff; }
+  .daycard { background:#1B1D22; border-radius:16px; padding:16px 18px; margin-bottom:18px; border:1px solid #2A2D3355; }
+  .daylabel { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .dayname { font-size:20px; font-weight:800; margin-top:2px; }
+  .dayfocus { font-size:13px; color:#9A9A9A; margin-top:2px; }
+  .rowtop { display:flex; justify-content:space-between; align-items:flex-start; }
+  .resetbtn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid #33363D; border-radius:8px; padding:6px 10px; color:#9A9A9A; font-size:12px; cursor:pointer; }
+  .progresslabel { display:flex; justify-content:space-between; font-size:12px; color:#9A9A9A; margin-bottom:5px; }
+  .progressbar { height:7px; background:#2A2D33; border-radius:99px; overflow:hidden; }
+  .progressfill { height:100%; transition:width .3s ease; }
+  .exlist { display:flex; flex-direction:column; gap:10px; }
+  .ex { background:#1B1D22; border:1px solid #2A2D33; border-radius:14px; padding:14px; transition:opacity .2s, border-color .2s; }
+  .ex.done { opacity:.55; }
+  .exrow { display:flex; align-items:flex-start; gap:12px; }
+  .check { flex:0 0 auto; width:26px; height:26px; border-radius:8px; border:1.5px solid #44474E; background:transparent; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:2px; }
+  .exname { font-size:15px; font-weight:700; color:#EDEDED; }
+  .exname.done { text-decoration:line-through; color:#8A8D93; }
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:#B8BAC0; border:1px solid #33363D; border-radius:8px; padding:4px 8px; }
+  .vidbtn { display:inline-flex; align-items:center; gap:5px; margin-top:10px; font-size:12.5px; font-weight:600; color:#EDEDED; text-decoration:none; background:#26282E; padding:6px 10px; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏋️ Treino da Semana</h1>
+  <p class="sub">Push / Pull / Legs / Upper / Lower — hipertrofia</p>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="daycard" id="daycard"></div>
+  <div class="exlist" id="exlist"></div>
+</div>
+
+<script>
+const DAYS = [
+  { id:"push", label:"Segunda", name:"Push", focus:"Peito, Ombro, Tríceps", accent:"#3B82F6",
+    exercises:[
+      {id:"p1", name:"Supino reto (barra ou máquina)", sets:4, reps:"8-12", rest:"90-120s", muscle:"Peito"},
+      {id:"p2", name:"Supino inclinado com halteres", sets:3, reps:"10-12", rest:"90s", muscle:"Peito (superior)"},
+      {id:"p3", name:"Desenvolvimento de ombro", sets:3, reps:"10-12", rest:"90s", muscle:"Ombro"},
+      {id:"p4", name:"Elevação lateral", sets:3, reps:"12-15", rest:"60s", muscle:"Ombro (lateral)"},
+      {id:"p5", name:"Tríceps corda (pulley)", sets:3, reps:"12-15", rest:"60s", muscle:"Tríceps"},
+      {id:"p6", name:"Tríceps testa", sets:3, reps:"10-12", rest:"60-90s", muscle:"Tríceps"},
+    ]},
+  { id:"pull", label:"Terça", name:"Pull", focus:"Costas, Bíceps", accent:"#F97316",
+    exercises:[
+      {id:"u1", name:"Puxada frontal (pulley)", sets:4, reps:"10-12", rest:"90-120s", muscle:"Costas (largura)"},
+      {id:"u2", name:"Remada baixa (cabo)", sets:3, reps:"10-12", rest:"90s", muscle:"Costas (espessura)"},
+      {id:"u3", name:"Remada curvada com barra", sets:3, reps:"8-10", rest:"90-120s", muscle:"Costas"},
+      {id:"u4", name:"Face pull", sets:3, reps:"12-15", rest:"60s", muscle:"Ombro posterior/Costas"},
+      {id:"u5", name:"Rosca direta", sets:3, reps:"10-12", rest:"60s", muscle:"Bíceps"},
+      {id:"u6", name:"Rosca alternada", sets:3, reps:"10-12", rest:"60s", muscle:"Bíceps"},
+    ]},
+  { id:"legs", label:"Quarta", name:"Legs", focus:"Pernas completo", accent:"#22C55E",
+    exercises:[
+      {id:"l1", name:"Agachamento livre ou no Smith", sets:4, reps:"8-10", rest:"120s", muscle:"Quadríceps/Glúteos"},
+      {id:"l2", name:"Leg press 45°", sets:4, reps:"10-12", rest:"90-120s", muscle:"Quadríceps"},
+      {id:"l3", name:"Cadeira extensora", sets:3, reps:"12-15", rest:"60s", muscle:"Quadríceps (isolado)"},
+      {id:"l4", name:"Mesa flexora", sets:3, reps:"12-15", rest:"60s", muscle:"Posterior de coxa"},
+      {id:"l5", name:"Cadeira adutora/abdutora", sets:2, reps:"15", rest:"45-60s", muscle:"Interna/externa da coxa"},
+      {id:"l6", name:"Panturrilha em pé", sets:4, reps:"15-20", rest:"45-60s", muscle:"Panturrilha"},
+    ]},
+  { id:"upper", label:"Quinta", name:"Upper", focus:"Complementar — peito, costas, ombro, braços", accent:"#3B82F6",
+    exercises:[
+      {id:"up1", name:"Crossover ou supino máquina", sets:3, reps:"10-12", rest:"90s", muscle:"Peito"},
+      {id:"up2", name:"Puxada supinada", sets:3, reps:"10-12", rest:"90s", muscle:"Costas/Bíceps"},
+      {id:"up3", name:"Desenvolvimento máquina", sets:3, reps:"10-12", rest:"90s", muscle:"Ombro"},
+      {id:"up4", name:"Remada unilateral (halter)", sets:3, reps:"10-12", rest:"90s", muscle:"Costas"},
+      {id:"up5", name:"Elevação lateral", sets:3, reps:"12-15", rest:"60s", muscle:"Ombro (lateral)"},
+      {id:"up6", name:"Bi-set: rosca + tríceps", sets:2, reps:"12 cada", rest:"60s", muscle:"Bíceps/Tríceps"},
+    ]},
+  { id:"lower", label:"Sexta", name:"Lower", focus:"Complementar — posterior de coxa e glúteos", accent:"#22C55E",
+    exercises:[
+      {id:"lo1", name:"Stiff (levantamento terra romeno)", sets:4, reps:"8-10", rest:"120s", muscle:"Posterior de coxa/Glúteos"},
+      {id:"lo2", name:"Afundo/passada", sets:3, reps:"10-12 por perna", rest:"90s", muscle:"Quadríceps/Glúteos"},
+      {id:"lo3", name:"Cadeira extensora", sets:3, reps:"12-15", rest:"60s", muscle:"Quadríceps"},
+      {id:"lo4", name:"Mesa flexora", sets:3, reps:"12-15", rest:"60s", muscle:"Posterior de coxa"},
+      {id:"lo5", name:"Panturrilha sentado", sets:4, reps:"15-20", rest:"45-60s", muscle:"Panturrilha"},
+      {id:"lo6", name:"Abdômen", sets:3, reps:"15-20", rest:"45s", muscle:"Core"},
+    ]},
+];
+
+const STORAGE_KEY = "treino-checks-v1";
+let checks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+let selectedDay = DAYS[0].id;
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(checks)); }
+function videoUrl(name) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(name + " execução técnica"); }
+
+function render() {
+  const day = DAYS.find(d => d.id === selectedDay);
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = "";
+  DAYS.forEach(d => {
+    const btn = document.createElement("div");
+    btn.className = "tab" + (d.id === selectedDay ? " active" : "");
+    btn.style.borderColor = d.id === selectedDay ? d.accent : "#2A2D33";
+    btn.style.background = d.id === selectedDay ? d.accent + "22" : "#1B1D22";
+    btn.textContent = d.label;
+    btn.onclick = () => { selectedDay = d.id; render(); };
+    tabsEl.appendChild(btn);
+  });
+
+  const doneCount = day.exercises.filter(ex => checks[ex.id]).length;
+  const total = day.exercises.length;
+  const pct = Math.round((doneCount/total)*100);
+
+  document.getElementById("daycard").innerHTML = `
+    <div class="rowtop">
+      <div>
+        <div class="daylabel" style="color:${day.accent}">${day.label}</div>
+        <div class="dayname">${day.name}</div>
+        <div class="dayfocus">${day.focus}</div>
+      </div>
+      <button class="resetbtn" id="resetBtn">↺ Reiniciar</button>
+    </div>
+    <div style="margin-top:14px">
+      <div class="progresslabel"><span>Progresso</span><span>${doneCount}/${total} concluídos</span></div>
+      <div class="progressbar"><div class="progressfill" style="width:${pct}%; background:${day.accent}"></div></div>
+    </div>
+  `;
+  document.getElementById("resetBtn").onclick = () => {
+    day.exercises.forEach(ex => delete checks[ex.id]);
+    save(); render();
+  };
+
+  const exlist = document.getElementById("exlist");
+  exlist.innerHTML = "";
+  day.exercises.forEach(ex => {
+    const done = !!checks[ex.id];
+    const div = document.createElement("div");
+    div.className = "ex" + (done ? " done" : "");
+    div.style.borderColor = done ? day.accent + "55" : "#2A2D33";
+    div.innerHTML = `
+      <div class="exrow">
+        <button class="check" style="border-color:${done?day.accent:'#44474E'}; background:${done?day.accent:'transparent'}">
+          ${done ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14161A" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ''}
+        </button>
+        <div style="flex:1; min-width:0">
+          <div class="exname ${done?'done':''}">${ex.name}</div>
+          <div class="badges">
+            <span class="badge">🔥 ${ex.sets}x${ex.reps}</span>
+            <span class="badge">⏱ ${ex.rest}</span>
+            <span class="badge" style="color:${day.accent}; border-color:${day.accent}55">${ex.muscle}</span>
+          </div>
+          <a class="vidbtn" href="${videoUrl(ex.name)}" target="_blank" rel="noopener noreferrer">▶ Ver vídeo de execução</a>
+        </div>
+      </div>
+    `;
+    div.querySelector(".check").onclick = () => {
+      checks[ex.id] = !checks[ex.id];
+      save(); render();
+    };
+    exlist.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>

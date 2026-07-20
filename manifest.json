@@ -1,0 +1,11 @@
+{
+  "name": "Treino da Semana",
+  "short_name": "Treino",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#14161A",
+  "theme_color": "#14161A",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
